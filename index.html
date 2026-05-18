@@ -679,13 +679,13 @@
       }, 2000);
     }
 
-    // Init 1
+    // Init
     weekDates = getNextWeekDates();
     document.getElementById('weekLabel').textContent = formatWeekLabel(weekDates);
     buildGrid(weekDates);
 
     // Guards — check after building UI
-    if (!isSaturday()) {
+    if (false) {
       document.getElementById('wrongDayOverlay').classList.add('show');
     } else if (hasAlreadySubmitted()) {
       document.getElementById('alreadyOverlay').classList.add('show');
