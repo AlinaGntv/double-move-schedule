@@ -685,7 +685,7 @@
     buildGrid(weekDates);
 
     // Guards — check after building UI
-    if (false) {
+    if (!isSaturday()) {
       document.getElementById('wrongDayOverlay').classList.add('show');
     } else if (hasAlreadySubmitted()) {
       document.getElementById('alreadyOverlay').classList.add('show');
