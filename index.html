@@ -518,14 +518,14 @@
   <div class="overlay" id="alreadyOverlay">
     <div class="overlay-icon purple">📋</div>
     <div class="overlay-title">Already Submitted</div>
-    <div class="overlay-sub">You've already submitted your schedule for this week. See you next Saturday!</div>
+    <div class="overlay-sub">You've already submitted your schedule for this week. See you next Sunday!</div>
   </div>
 
   <!-- Wrong day -->
   <div class="overlay" id="wrongDayOverlay">
     <div class="overlay-icon orange">🗓️</div>
-    <div class="overlay-title">Come Back Saturday</div>
-    <div class="overlay-sub">Schedule submissions are only open on Saturdays. We'll send you a reminder!</div>
+    <div class="overlay-title">Come Back Sunday</div>
+    <div class="overlay-sub">Schedule submissions are only open on Sundays. We'll send you a reminder!</div>
   </div>
 
   <script>
@@ -539,7 +539,7 @@
     var selectedDays = new Set();
     var weekDates = [];
 
-    function isSaturday() {
+    function isSunday() {
       return new Date().getDay() === 6;
     }
 
@@ -685,7 +685,7 @@
     buildGrid(weekDates);
 
     // Guards — check after building UI
-    if (!isSaturday()) {
+    if (!isSunday()) {
       document.getElementById('wrongDayOverlay').classList.add('show');
     } else if (hasAlreadySubmitted()) {
       document.getElementById('alreadyOverlay').classList.add('show');
