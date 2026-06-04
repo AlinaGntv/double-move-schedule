@@ -181,7 +181,6 @@
 
     .days-grid {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
       gap: 8px;
       margin-bottom: 28px;
     }
@@ -378,7 +377,6 @@
       transform: none;
     }
 
-    /* Overlays */
     .overlay {
       display: none;
       position: fixed;
@@ -412,12 +410,6 @@
       background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.05));
       border: 2px solid var(--green);
       box-shadow: 0 0 40px rgba(34, 197, 94, 0.3);
-    }
-
-    .overlay-icon.orange {
-      background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(249, 115, 22, 0.05));
-      border: 2px solid var(--orange);
-      box-shadow: 0 0 40px rgba(249, 115, 22, 0.3);
     }
 
     .overlay-icon.purple {
@@ -487,9 +479,9 @@
     <div class="content">
       <div class="section-title">
         <span class="icon">🗓️</span>
-        Available next week
+        <span id="sectionTitle">Available this week</span>
       </div>
-      <div class="week-label" id="weekLabel">Loading week...</div>
+      <div class="week-label" id="weekLabel">Loading...</div>
       <div class="days-grid" id="daysGrid"></div>
       <div class="summary-card">
         <div class="summary-label">Selected days</div>
@@ -507,25 +499,16 @@
     </button>
   </div>
 
-  <!-- Success -->
   <div class="overlay" id="successOverlay">
     <div class="overlay-icon green">✅</div>
     <div class="overlay-title">Schedule Saved!</div>
     <div class="overlay-sub">Your availability has been recorded. See you next week!</div>
   </div>
 
-  <!-- Already submitted -->
   <div class="overlay" id="alreadyOverlay">
     <div class="overlay-icon purple">📋</div>
     <div class="overlay-title">Already Submitted</div>
-    <div class="overlay-sub">You've already submitted your schedule for this week. See you next Sunday!</div>
-  </div>
-
-  <!-- Wrong day -->
-  <div class="overlay" id="wrongDayOverlay">
-    <div class="overlay-icon orange">🗓️</div>
-    <div class="overlay-title">Come Back Sunday</div>
-    <div class="overlay-sub">Schedule submissions are only open on Sundays. We'll send you a reminder!</div>
+    <div class="overlay-sub">You've already submitted your schedule. See you next Saturday!</div>
   </div>
 
   <script>
@@ -536,36 +519,58 @@
     }
 
     var DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    // JS getDay(): 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
     var selectedDays = new Set();
     var weekDates = [];
+    var weekKey = '';
 
-    function isSunday() {
-      return new Date().getDay() === 6;
-    }
-
-    function getNextWeekDates() {
+    function getAvailableDates() {
       var today = new Date();
-      var dayOfWeek = today.getDay();
-      var daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
-      var monday = new Date(today);
-      monday.setDate(today.getDate() + daysUntilMonday);
+      today.setHours(0, 0, 0, 0);
+      var jsDay = today.getDay(); // 0=Sun, 6=Sat
+
       var dates = [];
-      for (var i = 0; i < 7; i++) {
-        var d = new Date(monday);
-        d.setDate(monday.getDate() + i);
-        dates.push(d);
+      var isSatOrSun = (jsDay === 6 || jsDay === 0);
+
+      if (isSatOrSun) {
+        // Sat or Sun → show full next week (Mon–Sun)
+        var daysUntilMonday = jsDay === 0 ? 1 : 2; // Sun→+1, Sat→+2
+        var monday = new Date(today);
+        monday.setDate(today.getDate() + daysUntilMonday);
+        for (var i = 0; i < 7; i++) {
+          var d = new Date(monday);
+          d.setDate(monday.getDate() + i);
+          dates.push(d);
+        }
+        document.getElementById('sectionTitle').textContent = 'Available next week';
+      } else {
+        // Mon–Fri → show remaining days of THIS week (tomorrow up to and including Sat)
+        // Find this week's Monday first
+        var daysFromMonday = jsDay === 0 ? 6 : jsDay - 1;
+        var thisMonday = new Date(today);
+        thisMonday.setDate(today.getDate() - daysFromMonday);
+
+        // Show days from tomorrow until Saturday (index 0=Mon … 5=Sat)
+        var tomorrowIndex = daysFromMonday + 1; // index in Mon-based week
+        for (var j = tomorrowIndex; j <= 5; j++) { // 5 = Sat
+          var d2 = new Date(thisMonday);
+          d2.setDate(thisMonday.getDate() + j);
+          dates.push(d2);
+        }
+        document.getElementById('sectionTitle').textContent = 'Available this week';
       }
+
       return dates;
     }
 
-    function getWeekKey() {
-      var monday = getNextWeekDates()[0];
-      return 'submitted_' + monday.toISOString().split('T')[0];
+    function getWeekKey(dates) {
+      // Use the first date in the array as the key
+      return 'submitted_' + dates[0].toISOString().split('T')[0];
     }
 
     function hasAlreadySubmitted() {
       try {
-        return localStorage.getItem(getWeekKey()) === 'true';
+        return localStorage.getItem(weekKey) === 'true';
       } catch (e) {
         return false;
       }
@@ -573,7 +578,7 @@
 
     function markAsSubmitted() {
       try {
-        localStorage.setItem(getWeekKey(), 'true');
+        localStorage.setItem(weekKey, 'true');
       } catch (e) {}
     }
 
@@ -582,20 +587,28 @@
         month: 'short',
         day: 'numeric'
       };
-      var start = dates[0].toLocaleDateString('en-US', opts);
-      var end = dates[6].toLocaleDateString('en-US', opts);
-      return 'Week of ' + start + ' - ' + end;
+      if (dates.length === 1) {
+        return dates[0].toLocaleDateString('en-US', opts);
+      }
+      return dates[0].toLocaleDateString('en-US', opts) + ' - ' + dates[dates.length - 1].toLocaleDateString('en-US',
+        opts);
     }
 
     function buildGrid(dates) {
       var grid = document.getElementById('daysGrid');
       grid.innerHTML = '';
+
+      // Set grid columns based on number of days
+      grid.style.gridTemplateColumns = 'repeat(' + dates.length + ', 1fr)';
+
       for (var i = 0; i < dates.length; i++) {
         (function (index, date) {
+          var jsDay = date.getDay(); // 0=Sun
+          var dayIndex = jsDay === 0 ? 6 : jsDay - 1; // convert to Mon=0 index
           var card = document.createElement('div');
           card.className = 'day-card';
           card.innerHTML =
-            '<div class="day-name">' + DAY_NAMES[index] + '</div>' +
+            '<div class="day-name">' + DAY_NAMES[dayIndex] + '</div>' +
             '<div class="day-date">' + date.getDate() + '</div>' +
             '<div class="day-check">' +
             '<svg class="checkmark" width="14" height="14" viewBox="0 0 14 14" fill="none">' +
@@ -632,7 +645,10 @@
         return a - b;
       });
       container.innerHTML = sorted.map(function (i) {
-        return '<span class="summary-tag">' + DAY_NAMES[i] + ' ' + weekDates[i].getDate() + '</span>';
+        var date = weekDates[i];
+        var jsDay = date.getDay();
+        var dayIndex = jsDay === 0 ? 6 : jsDay - 1;
+        return '<span class="summary-tag">' + DAY_NAMES[dayIndex] + ' ' + date.getDate() + '</span>';
       }).join('');
     }
 
@@ -643,9 +659,12 @@
         return a - b;
       });
       var days = sorted.map(function (i) {
+        var date = weekDates[i];
+        var jsDay = date.getDay();
+        var dayIndex = jsDay === 0 ? 6 : jsDay - 1;
         return {
-          day: DAY_NAMES[i],
-          date: weekDates[i].toISOString().split('T')[0]
+          day: DAY_NAMES[dayIndex],
+          date: date.toISOString().split('T')[0]
         };
       });
 
@@ -680,11 +699,11 @@
     }
 
     // Init
-    weekDates = getNextWeekDates();
+    weekDates = getAvailableDates();
+    weekKey = getWeekKey(weekDates);
     document.getElementById('weekLabel').textContent = formatWeekLabel(weekDates);
     buildGrid(weekDates);
 
-    // Guards — check after building UI
     if (hasAlreadySubmitted()) {
       document.getElementById('alreadyOverlay').classList.add('show');
     }
