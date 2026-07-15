@@ -522,6 +522,7 @@
     // JS getDay(): 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
     var selectedDays = new Set();
     var weekDates = [];
+    var weekMonday = null;
     var weekKey = '';
 
     function getAvailableDates() {
@@ -537,6 +538,7 @@
         var daysUntilMonday = jsDay === 0 ? 1 : 2; // Sun→+1, Sat→+2
         var monday = new Date(today);
         monday.setDate(today.getDate() + daysUntilMonday);
+        weekMonday = monday;
         for (var i = 0; i < 7; i++) {
           var d = new Date(monday);
           d.setDate(monday.getDate() + i);
@@ -549,6 +551,7 @@
         var daysFromMonday = jsDay === 0 ? 6 : jsDay - 1;
         var thisMonday = new Date(today);
         thisMonday.setDate(today.getDate() - daysFromMonday);
+        weekMonday = thisMonday;
 
         // Show days from tomorrow until Saturday (index 0=Mon … 5=Sat)
         var tomorrowIndex = daysFromMonday + 1; // index in Mon-based week
@@ -570,8 +573,8 @@
       return y + '-' + m + '-' + d;
     }
 
-    function getWeekKey(dates) {
-      return 'submitted_' + toLocalISODate(dates[0]);
+    function getWeekKey() {
+      return 'submitted_' + toLocalISODate(weekMonday);
     }
 
     function hasAlreadySubmitted() {
@@ -683,7 +686,7 @@
         userId: user ? user.id : null,
         firstName: user ? user.first_name : null,
         username: user ? user.username : null,
-        weekStart: toLocalISODate(weekDates[0]),
+        weekStart: toLocalISODate(weekMonday),
         selectedDays: days
       };
 
@@ -706,7 +709,7 @@
 
     // Init
     weekDates = getAvailableDates();
-    weekKey = getWeekKey(weekDates);
+    weekKey = getWeekKey();
     document.getElementById('weekLabel').textContent = formatWeekLabel(weekDates);
     buildGrid(weekDates);
 
