@@ -563,9 +563,15 @@
       return dates;
     }
 
+    function toLocalISODate(date) {
+      var y = date.getFullYear();
+      var m = String(date.getMonth() + 1).padStart(2, '0');
+      var d = String(date.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + d;
+    }
+
     function getWeekKey(dates) {
-      // Use the first date in the array as the key
-      return 'submitted_' + dates[0].toISOString().split('T')[0];
+      return 'submitted_' + toLocalISODate(dates[0]);
     }
 
     function hasAlreadySubmitted() {
@@ -664,7 +670,7 @@
         var dayIndex = jsDay === 0 ? 6 : jsDay - 1;
         return {
           day: DAY_NAMES[dayIndex],
-          date: date.toISOString().split('T')[0]
+          date: toLocalISODate(date)
         };
       });
 
@@ -677,7 +683,7 @@
         userId: user ? user.id : null,
         firstName: user ? user.first_name : null,
         username: user ? user.username : null,
-        weekStart: weekDates[0].toISOString().split('T')[0],
+        weekStart: toLocalISODate(weekDates[0]),
         selectedDays: days
       };
 
